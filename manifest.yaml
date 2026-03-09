@@ -1,0 +1,16 @@
+manifestVersion: 1
+name: "@dougschaefer/utelogy"
+version: "2026.03.09.1"
+description: "Utelogy AV monitoring platform — rooms, assets, alerts, and Global Device Library management with multi-tenant vault-based credential resolution."
+repository: https://github.com/dougschaefer6/swamp-utelogy
+labels:
+  - utelogy
+  - av
+  - monitoring
+  - audiovisual
+  - msp
+models:
+  - room.ts
+  - asset.ts
+  - alert.ts
+  - gdl.ts
