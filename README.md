@@ -1,61 +1,63 @@
 # Swamp Utelogy Extension
 
-[Swamp](https://swamp.club) extension models for the [Utelogy](https://www.utelogy.com) AV monitoring platform. Provides structured resource tracking for rooms, assets, alerts, and the Global Device Library.
+Utelogy is the AV monitoring platform that sits between your device fleet and your operations team, tracking room health, asset status, and alert state across every endpoint it manages. This [Swamp](https://swamp.club) extension pulls that data out of the Utelogy API and into Swamp's versioned resource model, so your AV monitoring state lives alongside the rest of your infrastructure state and participates in the same CEL expressions, workflow triggers, and cross-platform automations as everything else in your repo.
 
 ## What It Does
 
-Turns Utelogy API data into tracked Swamp resources with full lifecycle management — query, persist, version, and garbage-collect your AV monitoring data alongside the rest of your infrastructure state.
+Without this extension, Utelogy API responses are ephemeral snapshots that disappear the moment you close the terminal. The extension persists each room, asset, and alert as a tracked Swamp resource with infinite lifetime and automatic garbage collection, which means you get a versioned history of your AV fleet state over time, the ability to diff what changed between any two points, and CEL expressions that can reference Utelogy data in workflows that also touch Cisco endpoints, Azure infrastructure, or anything else Swamp manages.
 
 ## Models
 
+The extension provides four models covering the core objects in Utelogy's monitoring hierarchy, from rooms (the physical spaces) down through the assets inside them and the alerts they generate, plus the Global Device Library reference data that underpins driver and feature capability lookups.
+
 ### `@dougschaefer/utelogy-room`
 
-Rooms monitored by Utelogy with CLM (Connection Lifecycle Manager) status, metrics, and alert summaries.
+Rooms monitored by Utelogy with CLM (Connection Lifecycle Manager) status, metrics, and alert summaries. Each room persists as a tracked resource with infinite lifetime and garbage collection after 10 versions.
 
-**Resources:** `room` — persisted with infinite lifetime, GC after 10 versions
-
-**Methods:**
-- `list` — List all rooms, persists each as a tracked resource
-- `get` — Get a specific room by ID
-- `getAlerts` — List active alerts for a specific room
+| Method | What It Does |
+|--------|-------------|
+| `list` | List all rooms, persists each as a tracked resource |
+| `get` | Get a specific room by ID |
+| `getAlerts` | List active alerts for a specific room |
 
 ### `@dougschaefer/utelogy-asset`
 
-Monitored assets (AV devices, compute endpoints, etc.) across all rooms.
+Monitored assets (AV devices, compute endpoints, network infrastructure) across all rooms. Resources persist with the same lifetime and GC settings as rooms.
 
-**Resources:** `asset` — persisted with infinite lifetime, GC after 10 versions
-
-**Methods:**
-- `list` — List all assets, persists each as a tracked resource
-- `get` — Get a specific asset by ID
+| Method | What It Does |
+|--------|-------------|
+| `list` | List all assets, persists each as a tracked resource |
+| `get` | Get a specific asset by ID |
 
 ### `@dougschaefer/utelogy-alert`
 
-Alerts with full target info, severity levels, and acknowledgment state.
+Alerts with full target info, severity levels, and acknowledgment state. The `acknowledge` method is the only write operation in the extension, everything else is read-only by design since Utelogy's API does not expose U-Automate script triggering or device control.
 
-**Resources:** `alert` — persisted with infinite lifetime, GC after 10 versions
-
-**Methods:**
-- `listActive` — List all currently active (unacknowledged) alerts
-- `list` — List alerts with optional date range filter
-- `acknowledge` — Acknowledge an active alert by ID
+| Method | What It Does |
+|--------|-------------|
+| `listActive` | List all currently active (unacknowledged) alerts |
+| `list` | List alerts with optional date range filter |
+| `acknowledge` | Acknowledge an active alert by ID |
 
 ### `@dougschaefer/utelogy-gdl`
 
-Global Device Library reference data — manufacturers, device categories, feature capabilities, and drivers. No resource persistence (reference data only).
+Global Device Library reference data covering manufacturers, device categories, feature capabilities, and drivers. This model does not persist resources since GDL data is reference material rather than monitored state.
 
-**Methods:**
-- `listManufacturers` — List all manufacturers
-- `listDeviceKinds` — List device categories
-- `listFeatureKinds` — List feature capabilities (power, volume, input, etc.)
-- `listDrivers` — List all drivers
-- `searchDrivers` — Search drivers by keyword
+| Method | What It Does |
+|--------|-------------|
+| `listManufacturers` | List all manufacturers |
+| `listDeviceKinds` | List device categories |
+| `listFeatureKinds` | List feature capabilities (power, volume, input, etc.) |
+| `listDrivers` | List all drivers |
+| `searchDrivers` | Search drivers by keyword |
 
 ## Prerequisites
 
-- [Swamp CLI](https://swamp.club) installed (`curl -fsSL swamp.club/install.sh | sh`)
-- A Utelogy portal account with API access
-- Your Utelogy API key and Base64 authorization header stored in a Swamp vault
+You need the [Swamp CLI](https://swamp.club) installed, a Utelogy portal account with API access, and your Utelogy API key and Base64 authorization header stored in a Swamp vault.
+
+```bash
+curl -fsSL swamp.club/install.sh | sh
+```
 
 ## Installation
 
@@ -65,7 +67,7 @@ swamp extension pull @dougschaefer/utelogy
 
 ## Credential Setup
 
-Store your Utelogy credentials in a Swamp vault (one vault per client for MSP multi-tenancy):
+Store your Utelogy credentials in a Swamp vault so they resolve at runtime rather than living in your model definitions. For MSP environments with multiple client deployments, create one vault per client to maintain credential isolation.
 
 ```bash
 # Create a vault for the client
@@ -89,7 +91,7 @@ globalArguments:
 
 ## Multi-Tenant MSP Usage
 
-Create separate vaults and model instances per client:
+Each client gets its own vault and its own model instances, so credentials and state are isolated by design rather than by convention. One client's token can never resolve in another client's model instance, and one client's room data never appears in another client's resource graph.
 
 ```bash
 # Client A
@@ -103,11 +105,9 @@ swamp vault put client-b/utelogy-api-key "key-b"
 swamp vault put client-b/utelogy-authorization "auth-b"
 ```
 
-Each model instance resolves its own vault credentials independently — no cross-tenant data leakage.
-
 ## Related
 
-- **[Utelogy MCP Server](https://github.com/American-Sound/utelogy-mcp-server)** — MCP server for Claude Code integration with Utelogy (maintained by American Sound & Electronics)
+- **[Utelogy MCP Server](https://github.com/American-Sound/utelogy-mcp-server)** provides Claude Code integration with the same Utelogy REST API, designed for interactive queries and conversational device management rather than the persistent state tracking this extension handles.
 - **[Utelogy REST API](https://portal.utelogy.com/swagger/docs/v1)**
 
 ## License
