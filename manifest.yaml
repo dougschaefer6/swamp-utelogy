@@ -1,13 +1,12 @@
 manifestVersion: 1
 name: "@dougschaefer/utelogy"
-version: "2026.03.09.2"
-description: "Utelogy AV monitoring platform — rooms with CLM status and metrics, assets with driver/feature inventory, alerts with acknowledgement, and Global Device Library search. REST API integration with vault-based multi-tenant credentials."
-repository: https://dev.azure.com/AmericanSound/ASEI/_git/asei-swamp-catalog
+version: "2026.03.29.1"
+description: "Utelogy AV monitoring platform — rooms with CLM status and metrics, assets with driver/feature inventory, alerts with acknowledgement, and Global Device Library search. REST API integration with vault-based credentials."
+repository: https://github.com/dougschaefer6/swamp-utelogy
 labels:
   - utelogy
   - av
   - monitoring
-  - msp
 models:
   - utelogy/alert.ts
   - utelogy/asset.ts

@@ -1,4 +1,4 @@
-import { z } from "npm:zod@4";
+import { z } from "npm:zod@4.3.6";
 import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
 
 const AssetSchema = z.object({

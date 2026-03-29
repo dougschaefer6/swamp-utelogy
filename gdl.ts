@@ -1,5 +1,5 @@
-import { z } from "npm:zod@4";
-import { utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
+import { z } from "npm:zod@4.3.6";
+import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
 
 export const model = {
   type: "@dougschaefer/utelogy-gdl",
@@ -111,9 +111,7 @@ export const model = {
         return {
           data: {
             attributes: { keywords: args.keywords, results },
-            name: `driver-search-${
-              args.keywords.toLowerCase().replace(/\s+/g, "-")
-            }`,
+            name: `driver-search-${sanitizeId(args.keywords)}`,
           },
         };
       },
