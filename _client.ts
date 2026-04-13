@@ -9,10 +9,10 @@ import { z } from "npm:zod@4.3.6";
  */
 
 export const UtelogyGlobalArgsSchema = z.object({
-  apiKey: z.string().describe(
+  apiKey: z.string().meta({ sensitive: true }).describe(
     "Utelogy API key. Use: ${{ vault.get(<client-vault>, utelogy-api-key) }}",
   ),
-  authorization: z.string().describe(
+  authorization: z.string().meta({ sensitive: true }).describe(
     "Base64 authorization value. Use: ${{ vault.get(<client-vault>, utelogy-authorization) }}",
   ),
   baseUrl: z
