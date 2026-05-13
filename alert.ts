@@ -38,6 +38,15 @@ const AlertSchema = z.object({
   LocationName: z.string().nullable(),
 }).passthrough();
 
+/**
+ * `@dougschaefer/utelogy-alert` model — Utelogy alert lifecycle.
+ * listActive returns currently-open alerts and is the primary feed for
+ * triage and incident creation; List enumerates the broader alert
+ * history with optional filters for retrospective analysis. Acknowledge
+ * transitions an alert to acknowledged state via the alerts API — note
+ * that Utelogy's read API is otherwise read-only, this is the only
+ * supported mutation surface.
+ */
 export const model = {
   type: "@dougschaefer/utelogy-alert",
   version: "2026.03.09.1",

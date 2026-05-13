@@ -1,6 +1,15 @@
 import { z } from "npm:zod@4.3.6";
 import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
 
+/**
+ * `@dougschaefer/utelogy-gdl` model — read-only access to Utelogy's
+ * Global Device Library, the canonical catalog of supported
+ * manufacturers, device kinds (codecs, displays, microphones, control
+ * processors, etc.), and feature kinds (capabilities). Use these
+ * enumerations to validate or shape device records before they post
+ * upstream — they reflect Utelogy's current driver coverage, not an
+ * arbitrary catalog.
+ */
 export const model = {
   type: "@dougschaefer/utelogy-gdl",
   version: "2026.03.09.1",

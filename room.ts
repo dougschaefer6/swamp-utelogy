@@ -44,6 +44,15 @@ const RoomSchema = z.object({
   Alerts: z.array(AlertSummarySchema),
 }).passthrough();
 
+/**
+ * `@dougschaefer/utelogy-room` model — manages Utelogy room inventory and
+ * per-room status across one or more TQL accounts. List enumerates rooms
+ * with CLM service state, schedule binding, location, metrics, and any
+ * embedded alert summaries. Get returns a single room by id. getAlerts
+ * returns the active alert set scoped to a room without re-fetching the
+ * room body, useful for incident-driven workflows that need just the
+ * alert tail.
+ */
 export const model = {
   type: "@dougschaefer/utelogy-room",
   version: "2026.03.09.1",

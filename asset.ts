@@ -6,6 +6,14 @@ const AssetSchema = z.object({
   AccountKey: z.string(),
 }).passthrough();
 
+/**
+ * `@dougschaefer/utelogy-asset` model — Utelogy asset inventory across
+ * monitored rooms. An asset is anything Utelogy tracks below the room
+ * level — codecs, microphones, displays, compute endpoints. List
+ * enumerates all assets and is the entry point for fleet inventory
+ * workflows; Get returns a single asset with the driver and feature
+ * attribution Utelogy records for it.
+ */
 export const model = {
   type: "@dougschaefer/utelogy-asset",
   version: "2026.03.09.1",
