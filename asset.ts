@@ -16,7 +16,7 @@ const AssetSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-asset",
-  version: "2026.03.09.1",
+  version: "2026.05.26.1",
   globalArguments: UtelogyGlobalArgsSchema,
   resources: {
     asset: {

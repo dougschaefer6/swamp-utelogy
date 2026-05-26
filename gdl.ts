@@ -12,7 +12,7 @@ import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
  */
 export const model = {
   type: "@dougschaefer/utelogy-gdl",
-  version: "2026.03.09.1",
+  version: "2026.05.26.1",
   globalArguments: UtelogyGlobalArgsSchema,
   resources: {},
   methods: {
