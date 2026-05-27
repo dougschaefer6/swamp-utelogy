@@ -55,7 +55,7 @@ const RoomSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-room",
-  version: "2026.05.26.1",
+  version: "2026.05.27.1",
   globalArguments: UtelogyGlobalArgsSchema,
   resources: {
     room: {
@@ -64,6 +64,16 @@ export const model = {
       schema: RoomSchema,
       lifetime: "infinite",
       garbageCollection: 10,
+    },
+    alertSet: {
+      description: "Active alerts scoped to a specific room",
+      schema: z.object({
+        roomId: z.string(),
+        alerts: z.array(z.unknown()),
+        capturedAt: z.string(),
+      }).passthrough(),
+      lifetime: "7d",
+      garbageCollection: 5,
     },
   },
   methods: {
@@ -128,12 +138,39 @@ export const model = {
           id: args.id,
         });
 
-        return {
-          data: {
-            attributes: { roomId: args.id, alerts: alertList },
-            name: `room-alerts-${sanitizeId(args.id)}`,
+        const handle = await context.writeResource(
+          "alertSet",
+          `room-alerts-${sanitizeId(args.id)}`,
+          {
+            roomId: args.id,
+            alerts: alertList,
+            capturedAt: new Date().toISOString(),
           },
-        };
+        );
+
+        return { dataHandles: [handle] };
+      },
+    },
+
+    sync: {
+      description:
+        "Refresh all room state from the Utelogy portal. Alias of list, intended for scheduled refresh.",
+      arguments: z.object({}),
+      execute: async (_args, context) => {
+        const g = context.globalArgs;
+        const rooms = (await utelogyApi("/api/room/list", g)) as Array<
+          Record<string, unknown>
+        >;
+
+        context.logger.info("Synced {count} rooms", { count: rooms.length });
+
+        const handles = [];
+        for (const room of rooms) {
+          const name = sanitizeId(room.Name as string || room._id as string);
+          const handle = await context.writeResource("room", name, room);
+          handles.push(handle);
+        }
+        return { dataHandles: handles };
       },
     },
   },

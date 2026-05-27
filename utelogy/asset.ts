@@ -16,7 +16,7 @@ const AssetSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-asset",
-  version: "2026.05.26.1",
+  version: "2026.05.27.1",
   globalArguments: UtelogyGlobalArgsSchema,
   resources: {
     asset: {
@@ -67,6 +67,28 @@ export const model = {
         context.logger.info("Retrieved asset {id}", { id: args.id });
 
         return { dataHandles: [handle] };
+      },
+    },
+
+    sync: {
+      description:
+        "Refresh all asset state from the Utelogy portal. Alias of list, intended for scheduled refresh.",
+      arguments: z.object({}),
+      execute: async (_args, context) => {
+        const g = context.globalArgs;
+        const assets = (await utelogyApi("/api/asset/list", g)) as Array<
+          Record<string, unknown>
+        >;
+
+        context.logger.info("Synced {count} assets", { count: assets.length });
+
+        const handles = [];
+        for (const asset of assets) {
+          const name = sanitizeId(asset._id as string);
+          const handle = await context.writeResource("asset", name, asset);
+          handles.push(handle);
+        }
+        return { dataHandles: handles };
       },
     },
   },

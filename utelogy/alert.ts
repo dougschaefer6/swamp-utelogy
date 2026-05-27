@@ -49,7 +49,7 @@ const AlertSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-alert",
-  version: "2026.05.26.1",
+  version: "2026.05.27.1",
   globalArguments: UtelogyGlobalArgsSchema,
   resources: {
     alert: {
@@ -123,25 +123,88 @@ export const model = {
     },
 
     acknowledge: {
-      description: "Acknowledge an active alert by ID.",
+      description:
+        "Acknowledge an active alert by ID. Idempotent — already-acknowledged alerts succeed without re-acknowledging.",
       arguments: z.object({
         id: z.string().describe("The alert ID to acknowledge"),
       }),
       execute: async (args, context) => {
         const g = context.globalArgs;
-        const result = await utelogyApi(
-          `/api/alert/${encodeURIComponent(args.id)}/acknowledge`,
-          g,
+
+        // Fetch current alert state to check if already acknowledged.
+        let alreadyAcknowledged = false;
+        try {
+          const existing = (await utelogyApi(
+            `/api/alert/${encodeURIComponent(args.id)}`,
+            g,
+          )) as Record<string, unknown>;
+          if (existing?.Acknowledged === true) {
+            alreadyAcknowledged = true;
+            context.logger.info("Alert {id} already acknowledged — no change", {
+              id: args.id,
+            });
+          }
+        } catch {
+          // If GET fails (not found), let the acknowledge call surface the error.
+        }
+
+        let result: unknown = { skipped: true };
+        if (!alreadyAcknowledged) {
+          result = await utelogyApi(
+            `/api/alert/${encodeURIComponent(args.id)}/acknowledge`,
+            g,
+          );
+          context.logger.info("Acknowledged alert {id}", { id: args.id });
+        }
+
+        const handle = await context.writeResource(
+          "alert",
+          `ack-${sanitizeId(args.id)}`,
+          {
+            _id: args.id,
+            AccountKey: "",
+            TargetInfo: {},
+            State: "acknowledged",
+            Subject: "",
+            Severity: "",
+            Message: "",
+            Occurred: "",
+            Cleared: null,
+            Acknowledged: true,
+            AcknowledgeUserID: null,
+            AcknowledgeUser: null,
+            AcknowledgeDate: new Date().toISOString(),
+            AlertKind: "",
+            Feature: null,
+            LocationID: null,
+            LocationName: null,
+            _result: result,
+          },
         );
 
-        context.logger.info("Acknowledged alert {id}", { id: args.id });
+        return { dataHandles: [handle] };
+      },
+    },
+  },
 
-        return {
-          data: {
-            attributes: { alertId: args.id, result },
-            name: `ack-${sanitizeId(args.id)}`,
-          },
-        };
+  checks: {
+    "alert-api-reachable": {
+      description:
+        "Verify the Utelogy alert API is reachable before acknowledging.",
+      labels: ["live"],
+      appliesTo: ["acknowledge"],
+      execute: async (context) => {
+        try {
+          await utelogyApi("/api/alert/list/active", context.globalArgs);
+          return { pass: true };
+        } catch (err) {
+          return {
+            pass: false,
+            errors: [
+              `Utelogy alert API unreachable: ${String(err)}`,
+            ],
+          };
+        }
       },
     },
   },

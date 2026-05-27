@@ -1,6 +1,20 @@
 import { z } from "npm:zod@4.3.6";
 import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
 
+const GdlEntrySchema = z.object({
+  kind: z.string(),
+  count: z.number(),
+  items: z.array(z.unknown()),
+  capturedAt: z.string(),
+}).passthrough();
+
+const DriverSearchSchema = z.object({
+  keywords: z.string(),
+  count: z.number(),
+  results: z.array(z.unknown()),
+  capturedAt: z.string(),
+}).passthrough();
+
 /**
  * `@dougschaefer/utelogy-gdl` model — read-only access to Utelogy's
  * Global Device Library, the canonical catalog of supported
@@ -12,9 +26,23 @@ import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
  */
 export const model = {
   type: "@dougschaefer/utelogy-gdl",
-  version: "2026.05.26.1",
+  version: "2026.05.27.1",
   globalArguments: UtelogyGlobalArgsSchema,
-  resources: {},
+  resources: {
+    gdlEntry: {
+      description:
+        "A catalog collection from the Utelogy Global Device Library (manufacturers, device kinds, feature kinds, or drivers)",
+      schema: GdlEntrySchema,
+      lifetime: "7d",
+      garbageCollection: 5,
+    },
+    driverSearch: {
+      description: "Result of a driver keyword search in the GDL",
+      schema: DriverSearchSchema,
+      lifetime: "7d",
+      garbageCollection: 5,
+    },
+  },
   methods: {
     listManufacturers: {
       description:
@@ -32,12 +60,18 @@ export const model = {
           count: list.length,
         });
 
-        return {
-          data: {
-            attributes: { manufacturers: list },
-            name: "manufacturers",
+        const handle = await context.writeResource(
+          "gdlEntry",
+          "manufacturers",
+          {
+            kind: "manufacturers",
+            count: list.length,
+            items: list,
+            capturedAt: new Date().toISOString(),
           },
-        };
+        );
+
+        return { dataHandles: [handle] };
       },
     },
 
@@ -53,12 +87,14 @@ export const model = {
           count: list.length,
         });
 
-        return {
-          data: {
-            attributes: { deviceKinds: list },
-            name: "device-kinds",
-          },
-        };
+        const handle = await context.writeResource("gdlEntry", "device-kinds", {
+          kind: "deviceKinds",
+          count: list.length,
+          items: list,
+          capturedAt: new Date().toISOString(),
+        });
+
+        return { dataHandles: [handle] };
       },
     },
 
@@ -75,12 +111,18 @@ export const model = {
           count: list.length,
         });
 
-        return {
-          data: {
-            attributes: { featureKinds: list },
-            name: "feature-kinds",
+        const handle = await context.writeResource(
+          "gdlEntry",
+          "feature-kinds",
+          {
+            kind: "featureKinds",
+            count: list.length,
+            items: list,
+            capturedAt: new Date().toISOString(),
           },
-        };
+        );
+
+        return { dataHandles: [handle] };
       },
     },
 
@@ -91,12 +133,17 @@ export const model = {
         const g = context.globalArgs;
         const drivers = await utelogyApi("/api/gdl/driver/list", g);
 
-        return {
-          data: {
-            attributes: { drivers },
-            name: "drivers",
-          },
-        };
+        const list = drivers as Array<Record<string, unknown>>;
+        context.logger.info("Found {count} drivers", { count: list.length });
+
+        const handle = await context.writeResource("gdlEntry", "drivers", {
+          kind: "drivers",
+          count: list.length,
+          items: list,
+          capturedAt: new Date().toISOString(),
+        });
+
+        return { dataHandles: [handle] };
       },
     },
 
@@ -113,16 +160,24 @@ export const model = {
           g,
         );
 
-        context.logger.info("Driver search for '{keywords}'", {
+        const list = results as Array<Record<string, unknown>>;
+        context.logger.info("Driver search for '{keywords}': {count} results", {
           keywords: args.keywords,
+          count: list.length,
         });
 
-        return {
-          data: {
-            attributes: { keywords: args.keywords, results },
-            name: `driver-search-${sanitizeId(args.keywords)}`,
+        const handle = await context.writeResource(
+          "driverSearch",
+          `driver-search-${sanitizeId(args.keywords)}`,
+          {
+            keywords: args.keywords,
+            count: list.length,
+            results: list,
+            capturedAt: new Date().toISOString(),
           },
-        };
+        );
+
+        return { dataHandles: [handle] };
       },
     },
   },
