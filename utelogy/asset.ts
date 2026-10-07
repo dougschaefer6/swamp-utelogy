@@ -1,5 +1,10 @@
 import { z } from "npm:zod@4.3.6";
-import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
+import {
+  type MethodContext,
+  sanitizeId,
+  utelogyApi,
+  UtelogyGlobalArgsSchema,
+} from "./_client.ts";
 
 const AssetSchema = z.object({
   _id: z.string(),
@@ -16,8 +21,16 @@ const AssetSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-asset",
-  version: "2026.05.27.1",
+  version: "2026.10.07.1",
   globalArguments: UtelogyGlobalArgsSchema,
+  upgrades: [
+    {
+      toVersion: "2026.10.07.1",
+      description:
+        "Typed method context; gdl gains getDriver; globalArguments unchanged",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+  ],
   resources: {
     asset: {
       description:
@@ -31,7 +44,7 @@ export const model = {
     list: {
       description: "List all monitored assets (devices) across all rooms.",
       arguments: z.object({}),
-      execute: async (_args, context) => {
+      execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
         const assets = (await utelogyApi("/api/asset/list", g)) as Array<
           Record<string, unknown>
@@ -54,7 +67,7 @@ export const model = {
       arguments: z.object({
         id: z.string().describe("Utelogy asset ID"),
       }),
-      execute: async (args, context) => {
+      execute: async (args: { id: string }, context: MethodContext) => {
         const g = context.globalArgs;
         const asset = (await utelogyApi(
           `/api/asset/${encodeURIComponent(args.id)}`,
@@ -74,7 +87,7 @@ export const model = {
       description:
         "Refresh all asset state from the Utelogy portal. Alias of list, intended for scheduled refresh.",
       arguments: z.object({}),
-      execute: async (_args, context) => {
+      execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
         const assets = (await utelogyApi("/api/asset/list", g)) as Array<
           Record<string, unknown>

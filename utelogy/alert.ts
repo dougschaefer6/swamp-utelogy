@@ -1,5 +1,10 @@
 import { z } from "npm:zod@4.3.6";
-import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
+import {
+  type MethodContext,
+  sanitizeId,
+  utelogyApi,
+  UtelogyGlobalArgsSchema,
+} from "./_client.ts";
 
 const TargetInfoSchema = z.object({
   Target: z.string(),
@@ -49,8 +54,16 @@ const AlertSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-alert",
-  version: "2026.05.27.1",
+  version: "2026.10.07.1",
   globalArguments: UtelogyGlobalArgsSchema,
+  upgrades: [
+    {
+      toVersion: "2026.10.07.1",
+      description:
+        "Typed method context; gdl gains getDriver; globalArguments unchanged",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+  ],
   resources: {
     alert: {
       description:
@@ -65,7 +78,7 @@ export const model = {
       description:
         "List all currently active (unacknowledged) alerts across all devices.",
       arguments: z.object({}),
-      execute: async (_args, context) => {
+      execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
         const alerts = (await utelogyApi(
           "/api/alert/list/active",
@@ -98,7 +111,10 @@ export const model = {
           .optional()
           .describe("End date filter (ISO 8601 datetime)"),
       }),
-      execute: async (args, context) => {
+      execute: async (
+        args: { occurredFrom?: string; occurredTo?: string },
+        context: MethodContext,
+      ) => {
         const g = context.globalArgs;
         const params: Record<string, string> = {};
         if (args.occurredFrom) params.occurredFrom = args.occurredFrom;
@@ -128,7 +144,7 @@ export const model = {
       arguments: z.object({
         id: z.string().describe("The alert ID to acknowledge"),
       }),
-      execute: async (args, context) => {
+      execute: async (args: { id: string }, context: MethodContext) => {
         const g = context.globalArgs;
 
         // Fetch current alert state to check if already acknowledged.
@@ -193,7 +209,7 @@ export const model = {
         "Verify the Utelogy alert API is reachable before acknowledging.",
       labels: ["live"],
       appliesTo: ["acknowledge"],
-      execute: async (context) => {
+      execute: async (context: Pick<MethodContext, "globalArgs">) => {
         try {
           await utelogyApi("/api/alert/list/active", context.globalArgs);
           return { pass: true };

@@ -1,5 +1,10 @@
 import { z } from "npm:zod@4.3.6";
-import { sanitizeId, utelogyApi, UtelogyGlobalArgsSchema } from "./_client.ts";
+import {
+  type MethodContext,
+  sanitizeId,
+  utelogyApi,
+  UtelogyGlobalArgsSchema,
+} from "./_client.ts";
 
 const MetricSchema = z.object({
   MetricKey: z.string(),
@@ -55,8 +60,16 @@ const RoomSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-room",
-  version: "2026.05.27.1",
+  version: "2026.10.07.1",
   globalArguments: UtelogyGlobalArgsSchema,
+  upgrades: [
+    {
+      toVersion: "2026.10.07.1",
+      description:
+        "Typed method context; gdl gains getDriver; globalArguments unchanged",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+  ],
   resources: {
     room: {
       description:
@@ -81,7 +94,7 @@ export const model = {
       description:
         "List all rooms in the Utelogy portal with metrics, CLM status, and active alerts.",
       arguments: z.object({}),
-      execute: async (_args, context) => {
+      execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
         const rooms = (await utelogyApi("/api/room/list", g)) as Array<
           Record<string, unknown>
@@ -104,7 +117,7 @@ export const model = {
       arguments: z.object({
         id: z.string().describe("Utelogy room ID"),
       }),
-      execute: async (args, context) => {
+      execute: async (args: { id: string }, context: MethodContext) => {
         const g = context.globalArgs;
         const room = (await utelogyApi(
           `/api/room/${encodeURIComponent(args.id)}`,
@@ -125,7 +138,7 @@ export const model = {
       arguments: z.object({
         id: z.string().describe("Utelogy room ID"),
       }),
-      execute: async (args, context) => {
+      execute: async (args: { id: string }, context: MethodContext) => {
         const g = context.globalArgs;
         const alerts = await utelogyApi(
           `/api/room/${encodeURIComponent(args.id)}/alerts`,
@@ -156,7 +169,7 @@ export const model = {
       description:
         "Refresh all room state from the Utelogy portal. Alias of list, intended for scheduled refresh.",
       arguments: z.object({}),
-      execute: async (_args, context) => {
+      execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
         const rooms = (await utelogyApi("/api/room/list", g)) as Array<
           Record<string, unknown>
