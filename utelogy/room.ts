@@ -4,6 +4,7 @@ import {
   sanitizeId,
   utelogyApi,
   UtelogyGlobalArgsSchema,
+  utelogyList,
 } from "./_client.ts";
 
 const MetricSchema = z.object({
@@ -51,7 +52,7 @@ const RoomSchema = z.object({
 
 /**
  * `@dougschaefer/utelogy-room` model — manages Utelogy room inventory and
- * per-room status across one or more TQL accounts. List enumerates rooms
+ * per-room status across one or more Utelogy accounts. List enumerates rooms
  * with CLM service state, schedule binding, location, metrics, and any
  * embedded alert summaries. Get returns a single room by id. getAlerts
  * returns the active alert set scoped to a room without re-fetching the
@@ -60,13 +61,19 @@ const RoomSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-room",
-  version: "2026.10.07.1",
+  version: "2026.10.08.1",
   globalArguments: UtelogyGlobalArgsSchema,
   upgrades: [
     {
       toVersion: "2026.10.07.1",
       description:
         "Typed method context; gdl gains getDriver; globalArguments unchanged",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+    {
+      toVersion: "2026.10.08.1",
+      description:
+        "List bodies must be JSON arrays; HTTP errors name the path; globalArguments unchanged (baseUrl now must be https)",
       upgradeAttributes: (old: Record<string, unknown>) => old,
     },
   ],
@@ -96,9 +103,7 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const rooms = (await utelogyApi("/api/room/list", g)) as Array<
-          Record<string, unknown>
-        >;
+        const rooms = await utelogyList("/api/room/list", g);
 
         context.logger.info("Found {count} rooms", { count: rooms.length });
 
@@ -140,12 +145,11 @@ export const model = {
       }),
       execute: async (args: { id: string }, context: MethodContext) => {
         const g = context.globalArgs;
-        const alerts = await utelogyApi(
+        const alertList = await utelogyList(
           `/api/room/${encodeURIComponent(args.id)}/alerts`,
           g,
         );
 
-        const alertList = alerts as Array<Record<string, unknown>>;
         context.logger.info("Found {count} alerts for room {id}", {
           count: alertList.length,
           id: args.id,
@@ -171,9 +175,7 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const rooms = (await utelogyApi("/api/room/list", g)) as Array<
-          Record<string, unknown>
-        >;
+        const rooms = await utelogyList("/api/room/list", g);
 
         context.logger.info("Synced {count} rooms", { count: rooms.length });
 

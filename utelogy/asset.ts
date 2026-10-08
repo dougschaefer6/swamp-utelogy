@@ -4,6 +4,7 @@ import {
   sanitizeId,
   utelogyApi,
   UtelogyGlobalArgsSchema,
+  utelogyList,
 } from "./_client.ts";
 
 const AssetSchema = z.object({
@@ -21,13 +22,19 @@ const AssetSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/utelogy-asset",
-  version: "2026.10.07.1",
+  version: "2026.10.08.1",
   globalArguments: UtelogyGlobalArgsSchema,
   upgrades: [
     {
       toVersion: "2026.10.07.1",
       description:
         "Typed method context; gdl gains getDriver; globalArguments unchanged",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+    {
+      toVersion: "2026.10.08.1",
+      description:
+        "List bodies must be JSON arrays; HTTP errors name the path; globalArguments unchanged (baseUrl now must be https)",
       upgradeAttributes: (old: Record<string, unknown>) => old,
     },
   ],
@@ -46,9 +53,7 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const assets = (await utelogyApi("/api/asset/list", g)) as Array<
-          Record<string, unknown>
-        >;
+        const assets = await utelogyList("/api/asset/list", g);
 
         context.logger.info("Found {count} assets", { count: assets.length });
 
@@ -89,9 +94,7 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const assets = (await utelogyApi("/api/asset/list", g)) as Array<
-          Record<string, unknown>
-        >;
+        const assets = await utelogyList("/api/asset/list", g);
 
         context.logger.info("Synced {count} assets", { count: assets.length });
 

@@ -18,7 +18,10 @@ export const UtelogyGlobalArgsSchema = z.object({
   baseUrl: z
     .string()
     .default("https://portal.utelogy.com")
-    .describe("Utelogy portal base URL"),
+    .refine((u) => u.toLowerCase().startsWith("https://"), {
+      message: "baseUrl must use https:// (credentials travel in headers)",
+    })
+    .describe("Utelogy portal base URL (https only)"),
 });
 
 export type UtelogyGlobalArgs = z.infer<typeof UtelogyGlobalArgsSchema>;
@@ -49,6 +52,35 @@ export interface MethodContext {
 
 /** Default per-request timeout; a hung portal fails the method instead of the lock. */
 export const REQUEST_TIMEOUT_MS = 60_000;
+
+/**
+ * Error thrown by {@link utelogyApi} on a non-2xx response. Carries the HTTP
+ * status so callers can branch on it without matching message text.
+ */
+export class UtelogyApiError extends Error {
+  /** HTTP status code of the failed response. */
+  readonly status: number;
+
+  /**
+   * @param status - HTTP status code of the failed response
+   * @param message - full error message
+   */
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "UtelogyApiError";
+    this.status = status;
+  }
+}
+
+/**
+ * True when `err` is a Utelogy API error with HTTP status 404.
+ *
+ * @param err - any caught value
+ * @returns whether the failed call returned 404 Not Found
+ */
+export function isNotFound(err: unknown): boolean {
+  return err instanceof UtelogyApiError && err.status === 404;
+}
 
 export async function utelogyApi(
   path: string,
@@ -93,7 +125,10 @@ export async function utelogyApi(
 
   if (!resp.ok) {
     const body = await resp.text();
-    throw new Error(`Utelogy API ${resp.status} ${resp.statusText}: ${body}`);
+    throw new UtelogyApiError(
+      resp.status,
+      `Utelogy API ${resp.status} ${resp.statusText} on ${url.pathname}: ${body}`,
+    );
   }
 
   const text = await resp.text();
@@ -107,6 +142,32 @@ export async function utelogyApi(
       }`,
     );
   }
+}
+
+/**
+ * Call a Utelogy list endpoint and require a JSON array body. An object or
+ * error-envelope body fails with the path named instead of surfacing later
+ * as `count: undefined` or a TypeError.
+ *
+ * @param path - API path, e.g. `/api/alert/list/active`
+ * @param globalArgs - credentials and base URL
+ * @param params - optional query parameters
+ * @returns the array body
+ */
+export async function utelogyList(
+  path: string,
+  globalArgs: { apiKey: string; authorization: string; baseUrl: string },
+  params?: Record<string, string>,
+): Promise<Array<Record<string, unknown>>> {
+  const body = await utelogyApi(path, globalArgs, params);
+  if (!Array.isArray(body)) {
+    throw new Error(
+      `Utelogy API ${path} returned ${
+        body === null ? "null" : typeof body
+      } where a JSON array was expected`,
+    );
+  }
+  return body as Array<Record<string, unknown>>;
 }
 
 export function sanitizeId(id: string): string {

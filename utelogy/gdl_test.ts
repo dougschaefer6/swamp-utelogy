@@ -76,7 +76,7 @@ const DRIVER_B64 = btoa(DRIVER_XML);
 
 Deno.test("every utelogy model ends its upgrades chain at its version", () => {
   for (const m of [model, alertModel, assetModel, roomModel]) {
-    assertEquals(m.version, "2026.10.07.1");
+    assertEquals(m.version, "2026.10.08.1");
     const last = m.upgrades[m.upgrades.length - 1];
     assertEquals(last.toVersion, m.version);
     const old = { apiKey: "test-key", authorization: "test-auth" };

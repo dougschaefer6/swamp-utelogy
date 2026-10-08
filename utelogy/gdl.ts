@@ -5,6 +5,7 @@ import {
   shortHash,
   utelogyApi,
   UtelogyGlobalArgsSchema,
+  utelogyList,
 } from "./_client.ts";
 
 const GdlEntrySchema = z.object({
@@ -105,13 +106,19 @@ export function decodeDriverFile(filename: string, b64: string): Uint8Array {
  */
 export const model = {
   type: "@dougschaefer/utelogy-gdl",
-  version: "2026.10.07.1",
+  version: "2026.10.08.1",
   globalArguments: UtelogyGlobalArgsSchema,
   upgrades: [
     {
       toVersion: "2026.10.07.1",
       description:
         "Adds getDriver, the driverDetail resource and the driverFile files spec; globalArguments unchanged",
+      upgradeAttributes: (old: Record<string, unknown>) => old,
+    },
+    {
+      toVersion: "2026.10.08.1",
+      description:
+        "List bodies must be JSON arrays; HTTP errors name the path; globalArguments unchanged (baseUrl now must be https)",
       upgradeAttributes: (old: Record<string, unknown>) => old,
     },
   ],
@@ -153,12 +160,11 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const manufacturers = await utelogyApi(
+        const list = await utelogyList(
           "/api/gdl/manufacturer/list",
           g,
         );
 
-        const list = manufacturers as Array<Record<string, unknown>>;
         context.logger.info("Found {count} manufacturers", {
           count: list.length,
         });
@@ -183,9 +189,8 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const kinds = await utelogyApi("/api/gdl/devicekind/list", g);
+        const list = await utelogyList("/api/gdl/devicekind/list", g);
 
-        const list = kinds as Array<Record<string, unknown>>;
         context.logger.info("Found {count} device kinds", {
           count: list.length,
         });
@@ -207,9 +212,8 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const kinds = await utelogyApi("/api/gdl/featurekind/list", g);
+        const list = await utelogyList("/api/gdl/featurekind/list", g);
 
-        const list = kinds as Array<Record<string, unknown>>;
         context.logger.info("Found {count} feature kinds", {
           count: list.length,
         });
@@ -234,9 +238,8 @@ export const model = {
       arguments: z.object({}),
       execute: async (_args: unknown, context: MethodContext) => {
         const g = context.globalArgs;
-        const drivers = await utelogyApi("/api/gdl/driver/list", g);
+        const list = await utelogyList("/api/gdl/driver/list", g);
 
-        const list = drivers as Array<Record<string, unknown>>;
         context.logger.info("Found {count} drivers", { count: list.length });
 
         const handle = await context.writeResource("gdlEntry", "drivers", {
@@ -258,12 +261,11 @@ export const model = {
       }),
       execute: async (args: { keywords: string }, context: MethodContext) => {
         const g = context.globalArgs;
-        const results = await utelogyApi(
+        const list = await utelogyList(
           `/api/gdl/driver/search/${encodeURIComponent(args.keywords)}`,
           g,
         );
 
-        const list = results as Array<Record<string, unknown>>;
         context.logger.info("Driver search for '{keywords}': {count} results", {
           keywords: args.keywords,
           count: list.length,

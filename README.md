@@ -42,11 +42,18 @@ severity levels, and acknowledgment state. The `acknowledge` method is the only
 write operation in the extension, as Utelogy's REST API does not expose
 U-Automate script triggering or device control endpoints.
 
-| Method        | Description                                       | Arguments                                                              |
-| ------------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
-| `listActive`  | List all currently active (unacknowledged) alerts | None                                                                   |
-| `list`        | List alerts with optional date range filter       | `occurredFrom` (ISO 8601, optional), `occurredTo` (ISO 8601, optional) |
-| `acknowledge` | Acknowledge an active alert                       | `id` (alert ID)                                                        |
+The public API has no single-alert lookup, so `acknowledge` checks the alert in
+the active-alert list first. It skips the call only when that list shows the
+alert already acknowledged; otherwise it calls the acknowledge endpoint and
+fails if the returned Packet's `ResponseCode` is not `Ok` or `Queued`. Either
+way it writes an `acknowledgement` record (`alertId`, `acknowledged`, `skipped`,
+`acknowledgedAt`, `response`) rather than touching the `alert` records.
+
+| Method        | Description                                               | Arguments                                                              |
+| ------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `listActive`  | List all currently active (unacknowledged) alerts         | None                                                                   |
+| `list`        | List alerts with optional date range filter               | `occurredFrom` (ISO 8601, optional), `occurredTo` (ISO 8601, optional) |
+| `acknowledge` | Acknowledge an alert, writing an `acknowledgement` record | `id` (alert ID)                                                        |
 
 ### `@dougschaefer/utelogy-gdl`
 
